@@ -16,7 +16,7 @@ function elapsed(createdAt: number, now: number) {
 
 export default function KitchenDisplay({ station }: { station: Station }) {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
 
@@ -28,7 +28,13 @@ export default function KitchenDisplay({ station }: { station: Station }) {
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Kitchen connection unavailable"); }
   }, []);
 
-  useEffect(() => { loadOrders(); const poll = window.setInterval(loadOrders, 2500); const clock = window.setInterval(() => setNow(Date.now()), 1000); return () => { clearInterval(poll); clearInterval(clock); }; }, [loadOrders]);
+  useEffect(() => {
+    setNow(Date.now());
+    loadOrders();
+    const poll = window.setInterval(loadOrders, 2500);
+    const clock = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => { clearInterval(poll); clearInterval(clock); };
+  }, [loadOrders]);
 
   const visibleOrders = useMemo(() => orders.map((order) => ({ ...order, items: order.items.filter((item) => item.station === station && item.status !== "held" && item.status !== "served") })).filter((order) => order.items.length), [orders, station]);
   const queued = visibleOrders.reduce((sum, order) => sum + order.items.filter((item) => item.status === "queued").length, 0);
@@ -57,7 +63,7 @@ export default function KitchenDisplay({ station }: { station: Station }) {
       <div className="kds-brand"><span className="brand-mark">C</span><div><b>CLUB KITCHEN</b><small>Kitchen display system</small></div></div>
       <nav className="kds-stations">{STATIONS.map((item) => <a key={item.id} href={`/kitchen/${item.id}`} className={item.id === station ? "active" : ""}><span>{item.number}</span>{item.label}</a>)}</nav>
       <a className="exit-kds" href="/">← Order screen</a>
-      <div className="kds-clock">{new Intl.DateTimeFormat("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false }).format(now)}<small>{new Intl.DateTimeFormat("en-AU", { weekday: "short", day: "numeric", month: "short" }).format(now)}</small></div>
+      <div className="kds-clock">{now === null ? "--:--" : new Intl.DateTimeFormat("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false }).format(now)}<small>{now === null ? "Local time" : new Intl.DateTimeFormat("en-AU", { weekday: "short", day: "numeric", month: "short" }).format(now)}</small></div>
     </header>
 
     <section className="kds-toolbar">
@@ -69,9 +75,9 @@ export default function KitchenDisplay({ station }: { station: Station }) {
     {error && <div className="kds-error">⚠ {error} <button onClick={loadOrders}>Retry</button></div>}
     <section className="ticket-grid">
       {visibleOrders.map((order, orderIndex) => {
-        const age = Math.floor((now - order.createdAt) / 60000);
+        const age = now === null ? 0 : Math.floor((now - order.createdAt) / 60000);
         return <article className={`ticket ${age >= 15 ? "urgent" : age >= 8 ? "watch" : ""}`} key={order.id}>
-          <header><div><span>TABLE</span><b>{order.tableNumber}</b></div><em>{order.guests} guests</em><time>{elapsed(order.createdAt, now)}</time></header>
+          <header><div><span>TABLE</span><b>{order.tableNumber}</b></div><em>{order.guests} guests</em><time>{elapsed(order.createdAt, now ?? order.createdAt)}</time></header>
           {order.note && <div className="ticket-note"><b>ORDER NOTE</b>{order.note}</div>}
           <div className="ticket-lines">{order.items.map((item) => <button disabled={busyId === item.id} onClick={() => advanceItem(order.id, item.id, item.status)} className={`ticket-line ${item.status}`} key={item.id}>
             <strong><span>{item.quantity}</span>{item.name}</strong>
