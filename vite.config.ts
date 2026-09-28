@@ -3,13 +3,13 @@ import vinext from "vinext";
 import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 
-const DEFAULT_CLOUDFLARE_D1_DATABASE_ID =
-  "74f72f2f-3ac2-4187-a330-4f206b83d828";
+const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
+  "00000000-0000-4000-8000-000000000000";
 
 const { d1, r2 } = hostingConfig;
 const d1DatabaseId =
   process.env.CLOUDFLARE_D1_DATABASE_ID ??
-  DEFAULT_CLOUDFLARE_D1_DATABASE_ID;
+  SITE_CREATOR_PLACEHOLDER_DATABASE_ID;
 const d1DatabaseName =
   process.env.CLOUDFLARE_D1_DATABASE_NAME ?? "camden-orders";
 
